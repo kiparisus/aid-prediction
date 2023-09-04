@@ -48,13 +48,18 @@ df4 = pd.merge(df3, stability, on=['NAME', 'TIME'], how='outer')
 df = pd.merge(df4, risk, on=['NAME', 'TIME'], how='outer')
 
 
+# grouping data
+df = df.groupby(['NAME','TIME'], dropna=False, as_index=False).mean()
+
+
 # saving a consolidated table
 df.to_csv('consolidated.csv', index=False)
 
 
 # reading file and preparing for analysis
 df = pd.read_csv('consolidated.csv', index_col = ['NAME', 'TIME'])
-df['YEAR'] = pd.Categorical(df.index.get_level_values('TIME').to_list())
+#df['YEAR'] = pd.Categorical(df.index.get_level_values('TIME').to_list())
+df['YEAR'] = df.index.get_level_values('TIME').to_list()
 
 
 # transforming into ln where needed
@@ -67,17 +72,11 @@ df['DISTANCE'] = np.log(df['DISTANCE'])
 new_df = df[df['YEAR'] == 2019]
 
 
-new_df = new_df.dropna()
+new_df = new_df.dropna() # dropping missing values
 
 
 # running a multiple linear regression
-
-
-x = new_df[['DISTANCE', 'POPULATION', 'WATER', 'UNDERNOURISHED', 'STABILITY', 'RISK']] # independent
-y = new_df['AID'] # dependent
-
-
-x = new_df[['RISK']] # independent
+x = new_df[['DISTANCE', 'POPULATION', 'UNDERNOURISHED', 'WATER', 'STABILITY', 'RISK']] # independent
 y = new_df['AID'] # dependent
 
 
@@ -109,22 +108,19 @@ print(model.summary().as_latex())
 # Pooled OLS
 
 
-risk = sm.add_constant(df['RISK']) #exogenous variable
-aid = df['AID'] #endogenous variable
+exog = sm.tools.tools.add_constant(df[['POPULATION', 'DISTANCE', 'RISK']])
+aid = df['AID']
 
 
-mod = lm.PooledOLS(aid, risk)
-pooledOLS_res = mod.fit(cov_type='clustered', cluster_entity=True)
+model = lm.PooledOLS(aid, exog)
+pooledOLS_res = model.fit(cov_type='clustered', cluster_entity=True)
 fittedvals_pooled_OLS = pooledOLS_res.predict().fitted_values
 residuals_pooled_OLS = pooledOLS_res.resids
-print(mod.fit())
 
 
 # Heteroscedacity test
 
-
 import matplotlib.pyplot as plt
- # 3A.1 Residuals-Plot for growing Variance Detection
 
 fig, ax = plt.subplots()
 ax.scatter(fittedvals_pooled_OLS, residuals_pooled_OLS, color = 'blue', s=1)
@@ -143,21 +139,23 @@ risk = sm.add_constant(df['RISK'])
 aid = df['AID']
 
 # random effects model
-model_re = lm.RandomEffects(aid, risk)
-re_res = model_re.fit()
+model_re = lm.RandomEffects(aid, risk) 
+re_res = model_re.fit() 
 
 # fixed effects model
-model_fe = lm.PanelOLS(aid, risk, entity_effects = True)
+model_fe = lm.PanelOLS(aid, risk, entity_effects = True) 
 fe_res = model_fe.fit()
 
 
 print(fe_res)
 print(re_res)
-
+print(fe_res.summary.as_latex())
+print(re_res.summary.as_latex())
 
 # Hausman Test
-# as in https://towardsdatascience.com/a-guide-to-panel-data-regression-theoretics-and-implementation-with-python-4c84c5055cf8
-
+# as in https://towardsdatascience.com/ \\
+# a-guide-to-panel-data-regression-theoretics \\
+# -and-implementation-with-python-4c84c5055cf8
 
 import numpy.linalg as la
 from scipy import stats
@@ -184,10 +182,8 @@ print('p-Value: ' + str(hausman_results[2]))
 
 
 # Verify that the selected instruments satisfy the relevance condition
-
-
-x = new_df[['WATER', 'STABILITY']] # independent
-y = new_df['RISK'] # dependent
+x = new_df[['WATER', 'STABILITY', 'UNDERNOURISHED']] #independent
+y = new_df['RISK'] #dependent
 
 
 x = sm.add_constant(x) # taking care of a constant
@@ -198,10 +194,12 @@ predictions = model.predict(x)
 
 print_model = model.summary()
 print(print_model)
+print(model.summary().as_latex())
 
 
-# IV2SLS with two instruments - WATER and STABILITY
-res_iv2sls = lm.IV2SLS(aid, risk, None, df[['WATER', 'STABILITY']]).fit(cov_type="unadjusted")
+# IV2SLS with three instruments - WATER, STABILITY, UNDERNOURISHED
 
 
-print(res_iv2sls)
+model_iv2sls = lm.IV2SLS(aid, exog, None, df[['WATER', 'STABILITY', 'UNDERNOURISHED']]).fit(cov_type="unadjusted")
+print(model_iv2sls)
+print(model_iv2sls.summary.as_latex())
