@@ -2,6 +2,8 @@
 A supplement to my thesis project "Rethinking the EU's financial architecture for external action in the light of manifold crises" at the College of Europe.
 
 ### files and corresponding data with sources
+- `notebook.py` Python code for data preparation and analysis
+  
 - `reg_aid.csv` *EU aid amount* (EU Aid Explorer)
 - `reg_risk.csv` *INFORM Risk index* (The Joint Research Centre)
 - `reg_pop.csv` *population size* (The World Bank Data)
