@@ -10,3 +10,4 @@ A supplement to my thesis project "Rethinking the EU's financial architecture fo
 - `reg_undernourishment.csv` *percentage of undernourished people* (FAOSTAT)
 - `reg_water.csv` *share of population with access to basic water sources* (FAOSTAT)
 - `reg_stability.csv` *political stability and absence of violence or terrorism index* (FAOSTAT)
+- `reg_distance.csv` *geographical remoteness of the aid recipient's capital from Brussels* (GIS calculations based on Natearth data)
